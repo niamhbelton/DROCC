@@ -154,7 +154,7 @@ class DROCCTrainer:
         scores = np.array(scores)
         if metric == 'F1':
             # Evaluation based on https://openreview.net/forum?id=BJJLHbb0-
-            thresh = np.percentile(scores, 20)
+            thresh = np.percentile(scores, 10)
             y_pred = np.where(scores >= thresh, 1, 0)
             prec, recall, test_metric, _ = precision_recall_fscore_support(
                 labels, y_pred, average="binary")
