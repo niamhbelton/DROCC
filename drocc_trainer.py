@@ -53,7 +53,7 @@ class DROCCTrainer:
         """
         best_score = -np.inf
         best_model = None
-        patience = 3
+        patience = 10
         pat = 0
         self.ascent_num_steps = ascent_num_steps
         self.ascent_step_size = ascent_step_size
@@ -117,7 +117,7 @@ class DROCCTrainer:
                 epoch, epoch_ce_loss.item(), epoch_adv_loss.item(),
                 metric, test_score))
 
-            if pat ==3:
+            if pat ==patience:
               break
         self.model = copy.deepcopy(best_model)
         print('\nBest test {}: {} on epoch {}'.format(
