@@ -6,6 +6,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score, precision_recall_fscore_support
+import pandas as pd
 
 #trainer class for DROCC
 class DROCCTrainer:
@@ -119,8 +120,8 @@ class DROCCTrainer:
             if pat ==3:
               break
         self.model = copy.deepcopy(best_model)
-        print('\nBest test {}: {}'.format(
-            metric, best_score
+        print('\nBest test {}: {} on epoch {}'.format(
+            metric, best_score, best_epoch
         ))
         return best_score, best_epoch
 
@@ -157,6 +158,15 @@ class DROCCTrainer:
             y_pred = np.where(scores >= thresh, 1, 0)
             prec, recall, test_metric, _ = precision_recall_fscore_support(
                 labels, y_pred, average="binary")
+
+
+            pd.DataFrame(scores).to_csv('scores')
+            pd.DataFrame(labels).to_csv('labels')
+            pd.DataFrame(y_pred).to_csv('orig')
+            pd.DataFrame([[thresh]]).to_csv('thres')
+            print('AUC is {}'.format(roc_auc_score(labels, scores)))
+            print('prec is {}'.format(prec))
+            print('recall is {}'.format(recall))
         if metric == 'AUC':
             test_metric = roc_auc_score(labels, scores)
         return test_metric
