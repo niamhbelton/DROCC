@@ -10,6 +10,7 @@ from torch.utils.data import Subset
 from torchvision.datasets import MNIST
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+import random
 
 class BaseADDataset(ABC):
     """Anomaly detection dataset base class."""
@@ -72,22 +73,27 @@ class MNIST_Dataset(TorchvisionDataset):
                               transform=transform, target_transform=target_transform)
 
         # Subset train set to normal class
-        train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes)
+        train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes, task)
         # train_idx_normal_train = sample(train_idx_normal, 4000)
         # val_idx_normal = [x for x in train_idx_normal if x not in train_idx_normal_train]
 
         # rest_train_classes = get_target_label_idx(train_set.train_labels, self.outlier_classes)
         # rest_train_classes_subset = sample(rest_train_classes, 9000)
         # val_idx = val_idx_normal + rest_train_classes_subset
+
         self.train_set = Subset(train_set, train_idx_normal)
         # self.test_set = Subset(train_set, val_idx)
-        self.test_set = MyMNIST(root=self.root, train=False, download=True,
-                                  transform=transform, target_transform=target_transform)
+
+        if task == 'test':
+          self.test_set = MyMNIST(root=self.root, train=False, download=True,
+                                    transform=transform, target_transform=target_transform)
+        else:
+          test_set = MyMNIST(root=self.root, train=True, download=True,
+                                    transform=transform, target_transform=target_transform)
+          test_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes, 'val')
+          self.test_set = Subset(test_set, test_idx_normal)
 
 
-        print(len(train_set))
-        print(len(self.train_set))
-        print(len(self.test_set))
 
 class MyMNIST(MNIST):
     """Torchvision MNIST class with patch of __getitem__ method to also return the index of a data sample."""
@@ -117,20 +123,37 @@ class MyMNIST(MNIST):
         return img, target, index  # only line changed
 
 
-def get_target_label_idx(labels, targets):
+def get_target_label_idx(labels, targets, task):
     """
     Get the indices of labels that are included in targets.
     :param labels: array of labels
     :param targets: list/tuple of target labels
     :return: list with indices of target labels
     """
-    print('here')
-    print(labels)
-    print('labs {}'.format(len(labels)))
-    print('norm {}'.format(len( np.argwhere(np.isin(labels, targets)).flatten().tolist())))
-    print(np.argwhere(np.isin(labels, targets)).flatten().tolist())
-    print('after')
-    return np.argwhere(np.isin(labels, targets)).flatten().tolist()
+    if task == 'train':
+      norm = np.argwhere(np.isin(labels, targets)).flatten().tolist()
+      np.random.seed(50)
+      ind = random.sample(range(0, len(norm)), len(norm) - 150)
+      return np.array(norm)[ind]
+    elif task == 'val':
+      norm = np.argwhere(np.isin(labels, targets)).flatten().tolist()
+      not_norm = np.argwhere(~np.isin(labels, targets)).flatten().tolist()
+
+      #get the indexes that are being used for training
+      np.random.seed(50)
+      ind = random.sample(range(0, len(norm)), len(norm) - 150)
+
+      #get indexes that are not used for training
+      lst = list(range(0,len(norm) ))
+      ind2 = [x for i,x in enumerate(lst) if i not in ind] #normals for validation
+
+      ind3 = random.sample(range(0, len(not_norm)), 1500 - 150) #anoms
+      anoms = np.array(not_norm)[ind3]
+
+      norms = np.array(norm)[ind2]
+      return anoms.tolist() + norms.tolist()
+    else:
+      return np.argwhere(np.isin(labels, targets)).flatten().tolist()
 
 
 def global_contrast_normalization(x: torch.tensor, scale='l2'):
