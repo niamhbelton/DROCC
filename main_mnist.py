@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 from collections import OrderedDict
 from data_process_scripts.process_mnist import MNIST_Dataset
 from drocc_trainer import DROCCTrainer
+import pandas as pd
 
 class MNIST_LeNet(nn.Module):
 
@@ -65,9 +66,13 @@ def adjust_learning_rate(epoch, total_epochs, only_ce_epochs, learning_rate, opt
 
 def main():
 
+    #set the seed
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+
     dataset = MNIST_Dataset("data", args.normal_class, args.task)
-    print(len(dataset.train_set))
-    print(len(dataset.test_set))
+
     train_loader, test_loader = dataset.loaders(batch_size=args.batch_size)
     model = MNIST_LeNet().to(device)
     model = nn.DataParallel(model)
@@ -86,7 +91,7 @@ def main():
 
     if args.eval == 0:
         # Training the model
-        trainer.train(train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
+        score, epoch = trainer.train(train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
             metric=args.metric, ascent_step_size=args.ascent_step_size, only_ce_epochs = 0)
 
         trainer.save(args.model_dir)
@@ -100,6 +105,19 @@ def main():
             exit()
         score = trainer.test(test_loader, 'AUC')
         print('Test AUC: {}'.format(score))
+
+    #write out all details of model training
+    cols = ['normal_class', 'seed', 'lr', 'lamda', 'ascent',  'optim' , 'AUC', 'epoch']
+    params = [args.normal_class, args.seed,args.lr, args.lamda, args.ascent_step_size , args.optim, score, epoch+1]
+    if not os.path.exists('outputs'):
+        os.makedirs('outputs')
+
+    string = './outputs/class_' + str(args.normal_class)
+    if not os.path.exists(string):
+        os.makedirs(string)
+
+    model_name = 'model_normal_class_'+str(args.normal_class) + '_seed_' + str(args.seed) + '_lr_ ' +str(args.lr) + '_lamda_' +str(args.lamda) + '_ascent_' +str(args.ascent_step_size) + '_optim_' +str(args.optim) + '_epoch_' + str(epoch) + '_auc_' + str(score)
+    pd.DataFrame([params], columns = cols).to_csv('./outputs/class_'+str(args.normal_class)+'/'+model_name)
 
 if __name__ == '__main__':
     torch.set_printoptions(precision=5)
@@ -142,6 +160,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data_path', type=str, default='.')
     parser.add_argument('--metric', type=str, default='AUC')
     parser.add_argument('--task', type=str, default='test')
+    parser.add_argument('--seed', default=1001)
     args = parser. parse_args()
 
     # settings

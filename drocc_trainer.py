@@ -52,6 +52,8 @@ class DROCCTrainer:
         """
         best_score = -np.inf
         best_model = None
+        patience = 3
+        pat = 0
         self.ascent_num_steps = ascent_num_steps
         self.ascent_step_size = ascent_step_size
         for epoch in range(total_epochs):
@@ -104,15 +106,23 @@ class DROCCTrainer:
 
             test_score = self.test(val_loader, metric)
             if test_score > best_score:
+                pat=0
                 best_score = test_score
+                best_epoch = epoch
                 best_model = copy.deepcopy(self.model)
+            else:
+                pat+=1
             print('Epoch: {}, CE Loss: {}, AdvLoss: {}, {}: {}'.format(
                 epoch, epoch_ce_loss.item(), epoch_adv_loss.item(),
                 metric, test_score))
+
+            if pat ==3:
+              break
         self.model = copy.deepcopy(best_model)
         print('\nBest test {}: {}'.format(
             metric, best_score
         ))
+        return best_score, best_epoch
 
     def test(self, test_loader, metric):
         """Evaluate the model on the given test dataset.
