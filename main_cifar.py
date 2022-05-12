@@ -74,7 +74,7 @@ def main():
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-    dataset = CIFAR10_Dataset("data", args.normal_class)
+    dataset = CIFAR10_Dataset("data", args.contam, args.normal_class)
     train_loader, test_loader = dataset.loaders(batch_size=args.batch_size)
     model = CIFAR10_LeNet().to(device)
     model = nn.DataParallel(model)
@@ -149,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data_path', type=str, default='.')
     parser.add_argument('--metric', type=str, default='AUC')
     parser.add_argument('--seed', default=1001)
+    parser.add_argument('--contam', type = float, default=0.0)
     args = parser. parse_args()
 
     # settings

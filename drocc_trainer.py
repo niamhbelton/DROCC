@@ -105,12 +105,13 @@ class DROCCTrainer:
             epoch_ce_loss = epoch_ce_loss/(batch_idx + 1)  #Average CE Loss
             epoch_adv_loss = epoch_adv_loss/(batch_idx + 1) #Average AdvLoss
 
-            test_score = self.test(val_loader, metric)
+            test_score, df  = self.test(val_loader, metric)
             if test_score > best_score:
                 pat=0
                 best_score = test_score
                 best_epoch = epoch
                 best_model = copy.deepcopy(self.model)
+                df.to_csv('data.csv')
             else:
                 pat+=1
             print('Epoch: {}, CE Loss: {}, AdvLoss: {}, {}: {}'.format(
@@ -160,16 +161,15 @@ class DROCCTrainer:
                 labels, y_pred, average="binary")
 
 
-            pd.DataFrame(scores).to_csv('scores')
-            pd.DataFrame(labels).to_csv('labels')
-            pd.DataFrame(y_pred).to_csv('orig')
-            pd.DataFrame([[thresh]]).to_csv('thres')
+
+            df=pd.concat([pd.DataFrame(scores), pd.DataFrame(labels), pd.DataFrame(y_pred)], axis =1)
+            df.columns = ['index','output', 'label', 'pred']
             print('AUC is {}'.format(roc_auc_score(labels, scores)))
             print('prec is {}'.format(prec))
             print('recall is {}'.format(recall))
         if metric == 'AUC':
             test_metric = roc_auc_score(labels, scores)
-        return test_metric
+        return test_metric, df
 
 
     def one_class_adv_loss(self, x_train_data):

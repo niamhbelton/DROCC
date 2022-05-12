@@ -10,6 +10,7 @@ from torch.utils.data import Subset
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+import random
 
 class BaseADDataset(ABC):
     """Anomaly detection dataset base class."""
@@ -50,13 +51,14 @@ class TorchvisionDataset(BaseADDataset):
 
 class CIFAR10_Dataset(TorchvisionDataset):
 
-    def __init__(self, root: str, normal_class=5):
+    def __init__(self, root: str, contam, normal_class=5):
         super().__init__(root)
 
         self.n_classes = 2  # 0: normal, 1: outlier
         self.normal_classes = tuple([normal_class])
         self.outlier_classes = list(range(0, 10))
         self.outlier_classes.remove(normal_class)
+        self.contam = contam
 
         transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
@@ -68,15 +70,9 @@ class CIFAR10_Dataset(TorchvisionDataset):
                               transform=transform, target_transform=target_transform)
 
         # Subset train set to normal class
-        train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes)
-        # train_idx_normal_train = sample(train_idx_normal, 4000)
-        # val_idx_normal = [x for x in train_idx_normal if x not in train_idx_normal_train]
+        train_idx_normal = get_target_label_idx(train_set.targets, self.contam, self.normal_classes)
 
-        # rest_train_classes = get_target_label_idx(train_set.train_labels, self.outlier_classes)
-        # rest_train_classes_subset = sample(rest_train_classes, 9000)
-        # val_idx = val_idx_normal + rest_train_classes_subset
         self.train_set = Subset(train_set, train_idx_normal)
-        # self.test_set = Subset(train_set, val_idx)
         self.test_set = MyCIFAR10(root=self.root, train=False, download=True,
                                   transform=transform, target_transform=target_transform)
 
@@ -108,14 +104,26 @@ class MyCIFAR10(CIFAR10):
 
         return img, target, index  # only line changed
 
-def get_target_label_idx(labels, targets):
+def get_target_label_idx(labels, contam, normal_class):
     """
     Get the indices of labels that are included in targets.
     :param labels: array of labels
     :param targets: list/tuple of target labels
     :return: list with indices of target labels
     """
-    return np.argwhere(np.isin(labels, targets)).flatten().tolist()
+    if contam > 0.0:
+
+      ind = np.where(np.array(labels)==normal_class[0])[0] #get indexes in the training set that are equal to the normal class
+      poll = np.ceil(len(ind) * contam)
+      random.seed(1)
+      samp = random.sample(range(0, len(ind)), len(ind) - int(poll)) #randomly sample len(ind) - poll normal data points
+      final_indexes = ind[samp]
+      con = np.where(np.array(labels)!=normal_class[0])[0] #get indexes of non-normal class
+      samp2 = random.sample(range(0, len(con)), int(poll))
+      return np.array(list(final_indexes) + list(con[samp2]))
+
+    else:
+      return np.argwhere(np.isin(labels, normal_class)).flatten().tolist()
 
 
 def global_contrast_normalization(x: torch.tensor, scale='l2'):
