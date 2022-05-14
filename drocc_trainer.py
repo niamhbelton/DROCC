@@ -111,8 +111,8 @@ class DROCCTrainer:
                 best_score = test_score
                 best_epoch = epoch
                 best_model = copy.deepcopy(self.model)
-                if df != None:
-                    df.to_csv('data.csv')
+                
+                df.to_csv('data.csv')
             else:
                 pat+=1
             print('Epoch: {}, CE Loss: {}, AdvLoss: {}, {}: {}'.format(
@@ -169,7 +169,7 @@ class DROCCTrainer:
             print('prec is {}'.format(prec))
             print('recall is {}'.format(recall))
         if metric == 'AUC':
-            df=None
+            df=pd.DataFrame([[0]])
             test_metric = roc_auc_score(labels, scores)
         return test_metric, df
 
