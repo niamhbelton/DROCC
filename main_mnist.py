@@ -107,8 +107,8 @@ def main():
         print('Test AUC: {}'.format(score))
 
     #write out all details of model training
-    cols = ['normal_class', 'seed', 'lr', 'lamda', 'ascent',  'optim' , 'AUC', 'epoch']
-    params = [args.normal_class, args.seed,args.lr, args.lamda, args.ascent_step_size , args.optim, score, epoch+1]
+    cols = ['normal_class', 'seed', 'lr', 'lamda', 'ascent',  'optim' , 'n', 'AUC', 'epoch']
+    params = [args.normal_class, args.seed,args.lr, args.lamda, args.ascent_step_size , args.optim, args.n, score, epoch+1]
     if not os.path.exists('outputs'):
         os.makedirs('outputs')
 
@@ -116,7 +116,7 @@ def main():
     if not os.path.exists(string):
         os.makedirs(string)
 
-    model_name = 'model_normal_class_'+str(args.normal_class) + '_seed_' + str(args.seed) + '_lr_ ' +str(args.lr) + '_lamda_' +str(args.lamda) + '_ascent_' +str(args.ascent_step_size) + '_optim_' +str(args.optim) + '_epoch_' + str(epoch) + '_auc_' + str(score)
+    model_name = 'model_normal_class_'+str(args.normal_class) + '_seed_' + str(args.seed) + '_lr_ ' +str(args.lr) + '_lamda_' +str(args.lamda) + '_ascent_' +str(args.ascent_step_size) + '_optim_' +str(args.optim) + '_n_' + str(args.n) + '_epoch_' + str(epoch) + '_auc_' + str(score)
     pd.DataFrame([params], columns = cols).to_csv('./outputs/class_'+str(args.normal_class)+'/'+model_name)
 
 if __name__ == '__main__':
