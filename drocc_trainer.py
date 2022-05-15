@@ -33,7 +33,7 @@ class DROCCTrainer:
         self.gamma = gamma
         self.device = device
 
-    def train(self, train_loader, val_loader, learning_rate, lr_scheduler, total_epochs,
+    def train(self, normal_class, seed, train_loader, val_loader, learning_rate, lr_scheduler, total_epochs,
                 only_ce_epochs=50, ascent_step_size=0.001, ascent_num_steps=50,
                 metric='AUC'):
         """Trains the model on the given training dataset with periodic
@@ -105,7 +105,7 @@ class DROCCTrainer:
             epoch_ce_loss = epoch_ce_loss/(batch_idx + 1)  #Average CE Loss
             epoch_adv_loss = epoch_adv_loss/(batch_idx + 1) #Average AdvLoss
 
-            test_score, df  = self.test(val_loader, metric)
+            test_score, auc, df  = self.test(val_loader, metric)
             if test_score > best_score:
                 pat=0
                 best_score = test_score
@@ -113,6 +113,8 @@ class DROCCTrainer:
                 best_model = copy.deepcopy(self.model)
 
                 df.to_csv('data.csv')
+                output_name = 'results_norm_class_' + str(normal_class) + '_seed_' + str(seed)
+                pd.DataFrame([[test_score, auc]]).to_csv(output_name)
             else:
                 pat+=1
             print('Epoch: {}, CE Loss: {}, AdvLoss: {}, {}: {}'.format(
@@ -165,6 +167,7 @@ class DROCCTrainer:
 
             df=pd.concat([pd.DataFrame(scores), pd.DataFrame(labels), pd.DataFrame(y_pred)], axis =1)
             df.columns = ['output', 'label', 'pred']
+            auc= roc_auc_score(labels, scores)
             print('AUC is {}'.format(roc_auc_score(labels, scores)))
             print('prec is {}'.format(prec))
             print('recall is {}'.format(recall))
@@ -178,12 +181,12 @@ class DROCCTrainer:
             recall = prec = ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] <= thresh) & (df['label'] == 1)]))
             print(recall)
             print('correct f1 score {}' .format(2 * ((prec * recall ) / (prec + recall))))
-
+            test_metric = 2 * ((prec * recall ) / (prec + recall))
 
         if metric == 'AUC':
             df=pd.DataFrame([[0]])
             test_metric = roc_auc_score(labels, scores)
-        return test_metric, df
+        return test_metric, auc, df
 
 
     def one_class_adv_loss(self, x_train_data):

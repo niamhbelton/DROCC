@@ -93,7 +93,7 @@ def main():
 
     if args.eval == 0:
         # Training the model
-        trainer.train(train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
+        trainer.train(args.normal_class, args.seed, train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
             metric=args.metric, ascent_step_size=args.ascent_step_size, only_ce_epochs = 0)
 
         trainer.save(args.model_dir)
