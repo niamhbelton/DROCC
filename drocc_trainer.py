@@ -74,6 +74,7 @@ class DROCCTrainer:
                 data = data.to(torch.float)
                 target = target.to(torch.float)
                 target = torch.squeeze(target)
+                print(len(targets))
 
                 self.optimizer.zero_grad()
 
