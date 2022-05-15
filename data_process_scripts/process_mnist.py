@@ -26,6 +26,7 @@ class BaseADDataset(ABC):
         self.train_set = None  # must be of type torch.utils.data.Dataset
         self.test_set = None  # must be of type torch.utils.data.Dataset
         self.task = None
+        self.N = None
 
     @abstractmethod
     def loaders(self, batch_size: int, shuffle_train=True, shuffle_test=False, num_workers: int = 0) -> (
@@ -54,7 +55,7 @@ class TorchvisionDataset(BaseADDataset):
 
 class MNIST_Dataset(TorchvisionDataset):
 
-    def __init__(self, root: str, normal_class=0, task='train'):
+    def __init__(self, root: str, N, normal_class=0, task='train'):
         super().__init__(root)
         #Loads only the digit 0 and digit 1 data
         # for both train and test
@@ -62,6 +63,7 @@ class MNIST_Dataset(TorchvisionDataset):
         self.normal_classes = tuple([normal_class])
         self.outlier_classes = list(range(0, 10))
         self.outlier_classes.remove(normal_class)
+        self.N = N
 
         transform = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Normalize(mean=[0.1307],
@@ -74,15 +76,14 @@ class MNIST_Dataset(TorchvisionDataset):
 
         # Subset train set to normal class
         train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes, task)
-        # train_idx_normal_train = sample(train_idx_normal, 4000)
-        # val_idx_normal = [x for x in train_idx_normal if x not in train_idx_normal_train]
 
-        # rest_train_classes = get_target_label_idx(train_set.train_labels, self.outlier_classes)
-        # rest_train_classes_subset = sample(rest_train_classes, 9000)
-        # val_idx = val_idx_normal + rest_train_classes_subset
+
+        if N > 0:
+          np.random.seed(1)
+          ind = random.sample(range(0, len(train_idx_normal)), self.N)
+          train_idx_normal=np.array(train_idx_normal)[ind]
 
         self.train_set = Subset(train_set, train_idx_normal)
-        # self.test_set = Subset(train_set, val_idx)
 
         if task == 'test':
           self.test_set = MyMNIST(root=self.root, train=False, download=True,

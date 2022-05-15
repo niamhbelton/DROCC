@@ -71,7 +71,7 @@ def main():
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-    dataset = MNIST_Dataset("data", args.normal_class, args.task)
+    dataset = MNIST_Dataset("data", args.n, args.normal_class, args.task)
 
     train_loader, test_loader = dataset.loaders(batch_size=args.batch_size)
     model = MNIST_LeNet().to(device)
@@ -91,7 +91,7 @@ def main():
 
     if args.eval == 0:
         # Training the model
-        score, epoch = trainer.train(train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
+        score, epoch = trainer.train(args.normal_class, args.seed, train_loader, test_loader, args.lr, adjust_learning_rate, args.epochs,
             metric=args.metric, ascent_step_size=args.ascent_step_size, only_ce_epochs = 0)
 
         trainer.save(args.model_dir)
@@ -161,6 +161,7 @@ if __name__ == '__main__':
     parser.add_argument('--metric', type=str, default='AUC')
     parser.add_argument('--task', type=str, default='test')
     parser.add_argument('--seed', default=1001)
+    parser.add_argument('--n', type = int, default=0)
     args = parser. parse_args()
 
     # settings
