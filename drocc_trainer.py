@@ -72,9 +72,10 @@ class DROCCTrainer:
                 data, target = data.to(self.device), target.to(self.device)
                 # Data Processing
                 data = data.to(torch.float)
+                target = torch.Tensor( [1] * len(target)).cuda()
                 target = target.to(torch.float)
                 target = torch.squeeze(target)
-                print(len(target))
+
 
                 self.optimizer.zero_grad()
 
