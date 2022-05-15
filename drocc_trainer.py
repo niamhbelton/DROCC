@@ -111,7 +111,7 @@ class DROCCTrainer:
                 best_score = test_score
                 best_epoch = epoch
                 best_model = copy.deepcopy(self.model)
-                
+
                 df.to_csv('data.csv')
             else:
                 pat+=1
@@ -156,7 +156,7 @@ class DROCCTrainer:
         scores = np.array(scores)
         if metric == 'F1':
             # Evaluation based on https://openreview.net/forum?id=BJJLHbb0-
-            thresh = np.percentile(scores, 10)
+            thresh = np.percentile(scores, 90)
             y_pred = np.where(scores >= thresh, 1, 0)
             prec, recall, test_metric, _ = precision_recall_fscore_support(
                 labels, y_pred, average="binary")
@@ -168,6 +168,18 @@ class DROCCTrainer:
             print('AUC is {}'.format(roc_auc_score(labels, scores)))
             print('prec is {}'.format(prec))
             print('recall is {}'.format(recall))
+
+
+            df['label'] = 1 - df['label']
+            df['output'] = df['output'] * -1
+            thresh = np.percentile(df['output'], 10)
+            prec = ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] > thresh) & (df['label'] == 0)]))
+            print(prec)
+            recall = prec = ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] <= thresh) & (df['label'] == 1)]))
+            print(recall)
+            print('correct f1 score {}' .format(2 * ((prec * recall ) / (prec + recall))))
+
+
         if metric == 'AUC':
             df=pd.DataFrame([[0]])
             test_metric = roc_auc_score(labels, scores)
