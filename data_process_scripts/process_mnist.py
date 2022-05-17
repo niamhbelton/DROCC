@@ -157,12 +157,12 @@ def get_target_label_idx(labels, targets, contam, task):
     else:
         if contam > 0.0:
 
-            ind = np.where(np.array(labels)==normal_class[0])[0] #get indexes in the training set that are equal to the normal class
+            ind = np.where(np.array(labels)==targets[0])[0] #get indexes in the training set that are equal to the normal class
             poll = np.ceil(len(ind) * contam)
             random.seed(1)
             samp = random.sample(range(0, len(ind)), len(ind) - int(poll)) #randomly sample len(ind) - poll normal data points
             final_indexes = ind[samp]
-            con = np.where(np.array(labels)!=normal_class[0])[0] #get indexes of non-normal class
+            con = np.where(np.array(labels)!=targets[0])[0] #get indexes of non-normal class
             samp2 = random.sample(range(0, len(con)), int(poll))
             return np.array(list(final_indexes) + list(con[samp2]))
         else:

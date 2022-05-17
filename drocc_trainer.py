@@ -107,7 +107,7 @@ class DROCCTrainer:
             epoch_ce_loss = epoch_ce_loss/(batch_idx + 1)  #Average CE Loss
             epoch_adv_loss = epoch_adv_loss/(batch_idx + 1) #Average AdvLoss
 
-            test_score, auc, df  = self.test(val_loader, metric)
+            test_score, auc, acc, df  = self.test(val_loader, metric)
             if test_score > best_score:
                 pat=0
                 best_score = test_score
@@ -115,8 +115,8 @@ class DROCCTrainer:
                 best_model = copy.deepcopy(self.model)
 
                 df.to_csv('data.csv')
-                output_name = 'results_norm_class_' + str(normal_class) + '_seed_' + str(seed)
-                pd.DataFrame([[test_score, auc]]).to_csv(output_name)
+                output_name = 'outputs/class_' + str(normal_class) + '/results_norm_class_' + str(normal_class) + '_seed_' + str(seed)
+                pd.DataFrame([[test_score, auc, acc]]).to_csv(output_name)
             else:
                 pat+=1
             print('Epoch: {}, CE Loss: {}, AdvLoss: {}, {}: {}'.format(
@@ -179,17 +179,20 @@ class DROCCTrainer:
             df['output'] = df['output'] * -1
             thresh = np.percentile(df['output'], 10)
             prec = ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] > thresh) & (df['label'] == 0)]))
-            print(prec)
-            recall = prec = ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] <= thresh) & (df['label'] == 1)]))
-            print(recall)
+            recall =( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) ) / ( len(df.loc[(df['output'] > thresh) & (df['label'] == 1)]) + len(df.loc[(df['output'] <= thresh) & (df['label'] == 1)]))
             print('correct f1 score {}' .format(2 * ((prec * recall ) / (prec + recall))))
             test_metric = 2 * ((prec * recall ) / (prec + recall))
+            fp = len(df.loc[(df['means'] > thresh ) & (df['label'] == 0)])
+            tn = len(df.loc[(df['means'] <= thresh ) & (df['label'] == 0)])
+            spec = tn / (fp + tn)
+            acc = (recall + spec) / 2
 
         if metric == 'AUC':
             df=pd.DataFrame([[0]])
             test_metric = roc_auc_score(labels, scores)
             auc = roc_auc_score(labels, scores)
-        return test_metric, auc, df
+            acc = auc
+        return test_metric, auc, acc,  df
 
 
     def one_class_adv_loss(self, x_train_data):
