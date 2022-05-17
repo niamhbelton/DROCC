@@ -71,7 +71,7 @@ def main():
     torch.cuda.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-    dataset = MNIST_Dataset("data", args.n, args.normal_class, args.task)
+    dataset = MNIST_Dataset("data", args.contam, args.n, args.normal_class, args.task)
 
     train_loader, test_loader = dataset.loaders(batch_size=args.batch_size)
     model = MNIST_LeNet().to(device)
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('--task', type=str, default='test')
     parser.add_argument('--seed', default=1001)
     parser.add_argument('--n', type = int, default=0)
+    parser.add_argument('--contam', type = float, default=0.0)
     args = parser. parse_args()
 
     # settings

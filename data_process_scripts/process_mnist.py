@@ -55,7 +55,7 @@ class TorchvisionDataset(BaseADDataset):
 
 class MNIST_Dataset(TorchvisionDataset):
 
-    def __init__(self, root: str, N, normal_class=0, task='train'):
+    def __init__(self, root: str, contam, N, normal_class=0, task='train'):
         super().__init__(root)
         #Loads only the digit 0 and digit 1 data
         # for both train and test
@@ -64,6 +64,7 @@ class MNIST_Dataset(TorchvisionDataset):
         self.outlier_classes = list(range(0, 10))
         self.outlier_classes.remove(normal_class)
         self.N = N
+        self.contam = contam
 
         transform = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Normalize(mean=[0.1307],
@@ -75,7 +76,7 @@ class MNIST_Dataset(TorchvisionDataset):
                               transform=transform, target_transform=target_transform)
 
         # Subset train set to normal class
-        train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes, task)
+        train_idx_normal = get_target_label_idx(train_set.targets, self.normal_classes, self.contam, task)
 
 
         if N > 0:
@@ -124,7 +125,7 @@ class MyMNIST(MNIST):
         return img, target, index  # only line changed
 
 
-def get_target_label_idx(labels, targets, task):
+def get_target_label_idx(labels, targets, contam, task):
     """
     Get the indices of labels that are included in targets.
     :param labels: array of labels
@@ -154,7 +155,20 @@ def get_target_label_idx(labels, targets, task):
       norms = np.array(norm)[ind2]
       return anoms.tolist() + norms.tolist()
     else:
-      return np.argwhere(np.isin(labels, targets)).flatten().tolist()
+        if contam > 0.0:
+
+            ind = np.where(np.array(labels)==normal_class[0])[0] #get indexes in the training set that are equal to the normal class
+            poll = np.ceil(len(ind) * contam)
+            random.seed(1)
+            samp = random.sample(range(0, len(ind)), len(ind) - int(poll)) #randomly sample len(ind) - poll normal data points
+            final_indexes = ind[samp]
+            con = np.where(np.array(labels)!=normal_class[0])[0] #get indexes of non-normal class
+            samp2 = random.sample(range(0, len(con)), int(poll))
+            return np.array(list(final_indexes) + list(con[samp2]))
+        else:
+            return np.argwhere(np.isin(labels, targets)).flatten().tolist()
+
+
 
 
 def global_contrast_normalization(x: torch.tensor, scale='l2'):

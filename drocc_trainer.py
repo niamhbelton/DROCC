@@ -188,7 +188,7 @@ class DROCCTrainer:
         if metric == 'AUC':
             df=pd.DataFrame([[0]])
             test_metric = roc_auc_score(labels, scores)
-            auc = = roc_auc_score(labels, scores)
+            auc = roc_auc_score(labels, scores)
         return test_metric, auc, df
 
 
